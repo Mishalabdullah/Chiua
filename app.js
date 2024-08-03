@@ -1,6 +1,7 @@
 // Setup Twind
 
   let chatHistory, userInput, apiKeyInput, modelSelect;
+  let conversationHistory = [];
   
   function adjustTextareaHeight() {
       if (userInput) {
@@ -50,6 +51,7 @@
       if (!message) return;
   
       addMessageToChat("You", message, "user-message");
+      conversationHistory.push({ role: "user", content: message });
   
       try {
           const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -62,7 +64,7 @@
                   model: selectedModel,
                   messages: [
                       { role: "system", content: "You are a helpful assistant. Use Markdown formatting for code blocks and structured text." },
-                      { role: "user", content: message },
+                      ...conversationHistory
                   ],
                   max_tokens: 2048,
               }),
@@ -76,6 +78,7 @@
           const responseText = data.choices[0].message.content;
   
           addMessageToChat("AI", responseText, "ai-message");
+          conversationHistory.push({ role: "assistant", content: responseText });
   
       } catch (error) {
           console.error("Error:", error);
@@ -124,6 +127,7 @@
     if (newChatBtn) {
         newChatBtn.addEventListener("click", () => {
             chatHistory.innerHTML = "";
+            conversationHistory = [];
         });
     }
 
