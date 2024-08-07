@@ -6,6 +6,19 @@ let chatHistory, userInput, apiKeyInput, modelSelect, deepgramApiKeyInput, micBu
 const audioChunks = [];
 const conversationHistory = [];
 
+const showLoader = (element) => {
+  const loader = document.createElement('div');
+  loader.className = 'loader';
+  element.appendChild(loader);
+};
+
+// Function to remove the loader
+const removeLoader = (element) => {
+  const loader = element.querySelector('.loader');
+  if (loader) {
+    loader.remove();
+  }
+};
 // Optimize adjustTextareaHeight function
 const adjustTextareaHeight = () => {
   if (userInput) {
@@ -23,6 +36,8 @@ const handleSendMessage = () => {
     adjustTextareaHeight();
   }
 };
+
+
 
 // Combine and optimize event listener initialization
 const initializeEventListeners = () => {
@@ -57,6 +72,7 @@ const initializeEventListeners = () => {
     console.error('Send button not found');
   }
   
+
   // Event listener for new chat button
   if (newChatBtn) {
     newChatBtn.addEventListener('click', () => {
@@ -169,6 +185,10 @@ const sendMessage = async (message) => {
 
   addMessageToChat('You', message, 'user-message');
   conversationHistory.push({ role: 'user', content: message });
+  const loaderContainer = document.createElement('div');
+  chatHistory.appendChild(loaderContainer);
+  showLoader(loaderContainer);
+
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -202,6 +222,9 @@ const sendMessage = async (message) => {
   } catch (error) {
     console.error('Error:', error);
     alert('An error occurred while fetching the response. Please check your API key and try again.');
+  }finally {
+    removeLoader(loaderContainer);
+    loaderContainer.remove();
   }
 };
 
@@ -213,6 +236,7 @@ const handleSend = async (audioBlob) => {
       alert('Please enter your Deepgram API key.');
       return;
     }
+    showLoader(micButton.parentElement);
 
     try {
       console.log('Sending audio to Deepgram...');
@@ -249,7 +273,10 @@ const handleSend = async (audioBlob) => {
     } catch (error) {
       console.error('Error sending audio to Deepgram:', error);
       alert(`An error occurred while transcribing the audio: ${error.message}`);
+    }finally {
+      removeLoader(micButton.parentElement);
     }
+
   } else {
     console.error('No audio blob provided');
     alert('No audio data available to transcribe.');
