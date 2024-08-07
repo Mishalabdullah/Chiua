@@ -5,6 +5,17 @@
 let chatHistory, userInput, apiKeyInput, modelSelect, deepgramApiKeyInput, micButton, mediaRecorder;
 const audioChunks = [];
 const conversationHistory = [];
+// Function to create and show a loader inside the mic button
+const showMicLoader = () => {
+  micButton.innerHTML = '<div class="loader"></div>';
+  micButton.disabled = true;
+};
+
+// Function to remove the loader from the mic button
+const removeMicLoader = () => {
+  micButton.innerHTML = 'Mic';
+  micButton.disabled = false;
+};
 
 const showLoader = (element) => {
   const loader = document.createElement('div');
@@ -72,7 +83,6 @@ const initializeEventListeners = () => {
     console.error('Send button not found');
   }
   
-
   // Event listener for new chat button
   if (newChatBtn) {
     newChatBtn.addEventListener('click', () => {
@@ -189,7 +199,6 @@ const sendMessage = async (message) => {
   chatHistory.appendChild(loaderContainer);
   showLoader(loaderContainer);
 
-
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -222,7 +231,7 @@ const sendMessage = async (message) => {
   } catch (error) {
     console.error('Error:', error);
     alert('An error occurred while fetching the response. Please check your API key and try again.');
-  }finally {
+  } finally {
     removeLoader(loaderContainer);
     loaderContainer.remove();
   }
@@ -236,7 +245,7 @@ const handleSend = async (audioBlob) => {
       alert('Please enter your Deepgram API key.');
       return;
     }
-    showLoader(micButton.parentElement);
+    showMicLoader();
 
     try {
       console.log('Sending audio to Deepgram...');
@@ -273,15 +282,15 @@ const handleSend = async (audioBlob) => {
     } catch (error) {
       console.error('Error sending audio to Deepgram:', error);
       alert(`An error occurred while transcribing the audio: ${error.message}`);
-    }finally {
-      removeLoader(micButton.parentElement);
+    } finally {
+      removeMicLoader();
     }
-
   } else {
     console.error('No audio blob provided');
     alert('No audio data available to transcribe.');
   }
 };
+
 // Wait for the DOM to be fully loaded before initializing
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM content loaded');
