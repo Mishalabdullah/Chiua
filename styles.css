@@ -64,6 +64,7 @@ body {
 .input-container {
     display: flex;
     align-items: flex-end;
+    padding-top: 5px;
 }
 
 #user-input {
@@ -77,8 +78,13 @@ body {
     max-height: 200px;
     overflow-y: auto;
 }
+#button-container{
+    display: flex; 
+    flex-direction: column;
+    gap: 5px;
+}
 
-#send-button {
+#send-button, #mic-button {
     background-color: var(--primary-color);
     color: white;
     border: none;
@@ -93,6 +99,11 @@ body {
 
 #send-button:hover {
     background-color: #0e8c6d;
+}
+
+
+#mic-button:hover {
+    background-color: #0a74ff;
 }
 
 .sidebar h1 {
