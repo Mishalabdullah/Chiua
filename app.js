@@ -1,217 +1,107 @@
-// Use strict mode for better error catching and performance
-'use strict';
+"use strict";
 
-// Declare variables using let or const for better scoping
+// Global variables
 let chatHistory, userInput, apiKeyInput, modelSelect, deepgramApiKeyInput, micButton, mediaRecorder;
 const audioChunks = [];
-const conversationHistory = [];
-// Function to create and show a loader inside the mic button
-const showMicLoader = () => {
-  micButton.innerHTML = '<div class="loader"></div>';
-  micButton.disabled = true;
-};
+let conversationHistory = [];
+let savedChats = {};
+let currentChatId = null;
+let githubToken = "";
+let githubRepo = "";
 
-// Function to remove the loader from the mic button
-const removeMicLoader = () => {
-  micButton.innerHTML = 'Mic';
-  micButton.disabled = false;
-};
+// DOM Element Selectors
+const getChatHistory = () => document.querySelector("#chat-history");
+const getUserInput = () => document.querySelector("#user-input");
+const getApiKeyInput = () => document.querySelector("#api-key");
+const getModelSelect = () => document.querySelector("#model-select");
+const getDeepgramApiKeyInput = () => document.querySelector("#deepgram-api-key");
+const getMicButton = () => document.querySelector("#mic-button");
+const getSendButton = () => document.querySelector("#send-button");
+const getNewChatBtn = () => document.querySelector(".new-chat-btn");
+const getSaveButton = () => document.querySelector("#save-button");
+const getPushToGithubButton = () => document.querySelector("#push-to-github-button");
+const getGithubTokenInput = () => document.querySelector("#github-token-input");
+const getGithubRepoInput = () => document.querySelector("#github-repo-input");
+const getSavedChatsList = () => document.querySelector("#saved-chats-list");
 
+// Utility functions
 const showLoader = (element) => {
-  const loader = document.createElement('div');
-  loader.className = 'loader';
+  const loader = document.createElement("div");
+  loader.className = "loader";
   element.appendChild(loader);
 };
 
-// Function to remove the loader
 const removeLoader = (element) => {
-  const loader = element.querySelector('.loader');
-  if (loader) {
-    loader.remove();
-  }
+  const loader = element.querySelector(".loader");
+  if (loader) loader.remove();
 };
-// Optimize adjustTextareaHeight function
+
 const adjustTextareaHeight = () => {
   if (userInput) {
-    userInput.style.height = 'auto';
+    userInput.style.height = "auto";
     userInput.style.height = `${Math.min(userInput.scrollHeight, 200)}px`;
   }
 };
 
-// Define handleSendMessage function
-const handleSendMessage = () => {
-  const message = userInput.value.trim();
-  if (message) {
-    sendMessage(message);
-    userInput.value = '';
-    adjustTextareaHeight();
-  }
-};
-
-
-
-// Combine and optimize event listener initialization
-const initializeEventListeners = () => {
-  console.log('Initializing event listeners');
-  
-  // Use querySelector for more flexible selection
-  chatHistory = document.querySelector('#chat-history');
-  userInput = document.querySelector('#user-input');
-  apiKeyInput = document.querySelector('#api-key');
-  modelSelect = document.querySelector('#model-select');
-  deepgramApiKeyInput = document.querySelector('#deepgram-api-key');
-  micButton = document.querySelector('#mic-button');
-  const sendButton = document.querySelector('#send-button');
-  const newChatBtn = document.querySelector('.new-chat-btn');
-
-  // Load API keys from localStorage
-  const savedApiKey = localStorage.getItem('apiKey');
-  if (savedApiKey) {
-    apiKeyInput.value = savedApiKey;
-  }
-
-  const savedDeepgramApiKey = localStorage.getItem('deepgramApiKey');
-  if (savedDeepgramApiKey) {
-    deepgramApiKeyInput.value = savedDeepgramApiKey;
-  }
-
-  // Event listener for send button
-  if (sendButton) {
-    console.log('Send button found');
-    sendButton.addEventListener('click', handleSendMessage);
-  } else {
-    console.error('Send button not found');
-  }
-  
-  // Event listener for new chat button
-  if (newChatBtn) {
-    newChatBtn.addEventListener('click', () => {
-      chatHistory.innerHTML = '';
-      conversationHistory.length = 0;
-    });
-  }
-
-  // Event listeners for user input
-  if (userInput) {
-    userInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSendMessage();
-      }
-    });
-    userInput.addEventListener('input', adjustTextareaHeight);
-  }
-
-  // Event listener for API key inputs
-  if (apiKeyInput) {
-    apiKeyInput.addEventListener('input', () => {
-      localStorage.setItem('apiKey', apiKeyInput.value);
-    });
-  }
-
-  if (deepgramApiKeyInput) {
-    deepgramApiKeyInput.addEventListener('input', () => {
-      localStorage.setItem('deepgramApiKey', deepgramApiKeyInput.value);
-    });
-  }
-
-  // Event listener for mic button
-  if (micButton) {
-    console.log('Mic button found');
-    micButton.addEventListener('click', handleMicButtonClick);
-  } else {
-    console.error('Mic button not found');
-  }
-};
-
-const handleMicButtonClick = async () => {
-  console.log('Mic button clicked');
-  
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop();
-    micButton.textContent = 'Mic';
-  } else {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      
-      const audioChunks = [];
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        await handleSend(audioBlob);
-      };
-      
-      mediaRecorder.start();
-      micButton.textContent = 'Stop';
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('An error occurred while accessing the microphone.');
-    }
-  }
-};
-
-// Optimize formatMessage function
 const formatMessage = (message) => {
   const formattedMessage = marked.parse(message);
-  const wrapper = document.createElement('div');
+  const wrapper = document.createElement("div");
   wrapper.innerHTML = formattedMessage;
-  wrapper.querySelectorAll('pre code').forEach(hljs.highlightElement);
+  wrapper.querySelectorAll("pre code").forEach(hljs.highlightElement);
   return wrapper.innerHTML;
 };
 
-// Optimize addMessageToChat function
+// Chat functions
 const addMessageToChat = (sender, message, className) => {
-  const messageDiv = document.createElement('div');
-  messageDiv.style.cssText = 'padding: 10px; margin-bottom: 10px; border-radius: 10px;';
-
-  const senderSpan = document.createElement('span');
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${className}`;
+  
+  const senderSpan = document.createElement("span");
   senderSpan.textContent = `${sender}: `;
-  senderSpan.style.fontWeight = 'bold';
-  messageDiv.appendChild(senderSpan);
-
-  const contentDiv = document.createElement('div');
+  senderSpan.className = "message-sender";
+  
+  const contentDiv = document.createElement("div");
   contentDiv.innerHTML = formatMessage(message);
+  contentDiv.className = "message-content";
+  
+  messageDiv.appendChild(senderSpan);
   messageDiv.appendChild(contentDiv);
-
+  
   chatHistory.appendChild(messageDiv);
   chatHistory.scrollTop = chatHistory.scrollHeight;
 };
 
-// Optimize sendMessage function
 const sendMessage = async (message) => {
   const apiKey = apiKeyInput.value.trim();
   const selectedModel = modelSelect.value;
 
   if (!apiKey) {
-    alert('Please enter your API key.');
+    alert("Please enter your API key.");
     return;
   }
 
   if (!message) return;
 
-  addMessageToChat('You', message, 'user-message');
-  conversationHistory.push({ role: 'user', content: message });
-  const loaderContainer = document.createElement('div');
+  addMessageToChat("You", message, "user-message");
+  conversationHistory.push({ role: "user", content: message });
+  
+  const loaderContainer = document.createElement("div");
   chatHistory.appendChild(loaderContainer);
   showLoader(loaderContainer);
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: selectedModel,
         messages: [
           {
-            role: 'system',
-            content: 'You are a helpful assistant. Use Markdown formatting for code blocks and structured text.',
+            role: "system",
+            content: "You are a helpful assistant. Use Markdown formatting for code blocks and structured text.",
           },
           ...conversationHistory,
         ],
@@ -226,77 +116,292 @@ const sendMessage = async (message) => {
     const data = await response.json();
     const responseText = data.choices[0].message.content;
 
-    addMessageToChat('AI', responseText, 'ai-message');
-    conversationHistory.push({ role: 'assistant', content: responseText });
+    addMessageToChat("AI", responseText, "ai-message");
+    conversationHistory.push({ role: "assistant", content: responseText });
+
+    // Update the current chat in savedChats if it exists
+    if (currentChatId && savedChats[currentChatId]) {
+      savedChats[currentChatId].messages = [...conversationHistory];
+      localStorage.setItem("savedChats", JSON.stringify(savedChats));
+      console.log(savedChats)
+      updateSavedChatsList();
+    }
   } catch (error) {
-    console.error('Error:', error);
-    alert('An error occurred while fetching the response. Please check your API key and try again.');
+    console.error("Error:", error);
+    alert("An error occurred while fetching the response. Please check your API key and try again.");
   } finally {
     removeLoader(loaderContainer);
     loaderContainer.remove();
+    userInput.value = "";
+    adjustTextareaHeight();
   }
 };
 
-const handleSend = async (audioBlob) => {
-  if (audioBlob) {
-    const apiKey = deepgramApiKeyInput.value.trim();
-    
-    if (!apiKey) {
-      alert('Please enter your Deepgram API key.');
-      return;
-    }
-    showMicLoader();
+// Chat storage functions
+const generateChatId = () => `chat_${Date.now()}`;
 
-    try {
-      console.log('Sending audio to Deepgram...');
-      const response = await fetch('https://api.deepgram.com/v1/listen', {
-        method: 'POST',
+const saveCurrentChat = () => {
+  const currentDate = new Date().toISOString().split("T")[0];
+
+  if (!currentChatId) {
+    currentChatId = generateChatId();
+  }
+
+  savedChats[currentChatId] = {
+    date: currentDate,
+    messages: [...conversationHistory]
+  };
+
+  localStorage.setItem("savedChats", JSON.stringify(savedChats));
+  updateSavedChatsList();
+};
+
+const updateSavedChatsList = () => {
+  const savedChatsList = getSavedChatsList();
+  if (!savedChatsList) return;
+
+  savedChatsList.innerHTML = "";
+
+  Object.entries(savedChats).forEach(([chatId, chatData]) => {
+    const chatItem = document.createElement("div");
+    chatItem.textContent = `${chatData.date} - ${chatData.messages[0]?.content.substring(0, 30) || "Empty chat"}...`;
+    chatItem.className = "saved-chat-item";
+    chatItem.addEventListener("click", () => loadChat(chatId));
+    savedChatsList.appendChild(chatItem);
+  });
+};
+
+const loadChat = (chatId) => {
+  currentChatId = chatId;
+  conversationHistory = [...savedChats[chatId].messages];
+  chatHistory.innerHTML = "";
+  conversationHistory.forEach((message) => {
+    addMessageToChat(
+      message.role === "user" ? "You" : "AI",
+      message.content,
+      message.role === "user" ? "user-message" : "ai-message"
+    );
+  });
+};
+
+const startNewChat = () => {
+  chatHistory.innerHTML = "";
+  conversationHistory = [];
+  currentChatId = null;
+};
+
+// GitHub integration
+const pushToGithub = async () => {
+  if (!githubToken || !githubRepo) {
+    alert("Please enter your GitHub token and repository name in the settings.");
+    return;
+  }
+
+  const content = btoa(JSON.stringify(savedChats, null, 2));
+  const date = new Date().toISOString().split("T")[0];
+  const path = `chats/${date}/chats.json`;
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${githubRepo}/contents/${path}`,
+      {
+        method: "PUT",
         headers: {
-          'Authorization': `Token ${apiKey}`,
-          'Content-Type': 'audio/webm',
+          Authorization: `token ${githubToken}`,
+          "Content-Type": "application/json",
         },
-        body: audioBlob
-      });
-
-      console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}, message: ${responseText}`);
+        body: JSON.stringify({
+          message: `Update chats for ${date}`,
+          content: content,
+          branch: "main",
+        }),
       }
+    );
 
-      const data = JSON.parse(responseText);
-      console.log('Parsed data:', data);
-
-      if (data.results && data.results.channels && data.results.channels[0].alternatives && data.results.channels[0].alternatives[0].transcript) {
-        const transcript = data.results.channels[0].alternatives[0].transcript;
-        console.log('Transcription:', transcript);
-        
-        userInput.value = transcript;
-        adjustTextareaHeight();
-      } else {
-        console.error('Unexpected response structure:', data);
-        alert('Received an unexpected response structure from Deepgram.');
-      }
-    } catch (error) {
-      console.error('Error sending audio to Deepgram:', error);
-      alert(`An error occurred while transcribing the audio: ${error.message}`);
-    } finally {
-      removeMicLoader();
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
     }
-  } else {
-    console.error('No audio blob provided');
-    alert('No audio data available to transcribe.');
+
+    alert("Chats successfully pushed to GitHub!");
+  } catch (error) {
+    console.error("Error pushing to GitHub:", error);
+    alert(`Failed to push to GitHub: ${error.message}`);
   }
 };
 
-// Wait for the DOM to be fully loaded before initializing
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM content loaded');
+// Mic handling
+const handleMicButtonClick = async () => {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    micButton.textContent = "Mic";
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        await handleSendAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      micButton.textContent = "Stop";
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("An error occurred while accessing the microphone.");
+    }
+  }
+};
+
+const handleSendAudio = async (audioBlob) => {
+  if (!audioBlob) {
+    console.error("No audio blob provided");
+    alert("No audio data available to transcribe.");
+    return;
+  }
+
+  const apiKey = deepgramApiKeyInput.value.trim();
+
+  if (!apiKey) {
+    alert("Please enter your Deepgram API key.");
+    return;
+  }
+
+  micButton.innerHTML = '<div class="loader"></div>';
+  micButton.disabled = true;
+
+  try {
+    const response = await fetch("https://api.deepgram.com/v1/listen", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "audio/webm",
+      },
+      body: audioBlob,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+      const transcript = data.results.channels[0].alternatives[0].transcript;
+      userInput.value = transcript;
+      adjustTextareaHeight();
+    } else {
+      throw new Error("Unexpected response structure from Deepgram.");
+    }
+  } catch (error) {
+    console.error("Error sending audio to Deepgram:", error);
+    alert(`An error occurred while transcribing the audio: ${error.message}`);
+  } finally {
+    micButton.innerHTML = "Mic";
+    micButton.disabled = false;
+  }
+};
+
+// Event listeners
+const initializeEventListeners = () => {
+  chatHistory = getChatHistory();
+  userInput = getUserInput();
+  apiKeyInput = getApiKeyInput();
+  modelSelect = getModelSelect();
+  deepgramApiKeyInput = getDeepgramApiKeyInput();
+  micButton = getMicButton();
+
+  const sendButton = getSendButton();
+  const newChatBtn = getNewChatBtn();
+  const saveButton = getSaveButton();
+  const pushToGithubButton = getPushToGithubButton();
+  const githubTokenInput = getGithubTokenInput();
+  const githubRepoInput = getGithubRepoInput();
+
+  if (saveButton) saveButton.addEventListener("click", saveCurrentChat);
+  if (pushToGithubButton) pushToGithubButton.addEventListener("click", pushToGithub);
+
+  if (githubTokenInput) {
+    githubTokenInput.addEventListener("input", () => {
+      githubToken = githubTokenInput.value;
+      localStorage.setItem("githubToken", githubToken);
+    });
+  }
+
+  if (githubRepoInput) {
+    githubRepoInput.addEventListener("input", () => {
+      githubRepo = githubRepoInput.value;
+      localStorage.setItem("githubRepo", githubRepo);
+    });
+  }
+
+  if (sendButton) {
+    sendButton.addEventListener("click", () => {
+      sendMessage(userInput.value.trim());
+    });
+  }
+  
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", startNewChat);
+  }
+
+  if (userInput) {
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(userInput.value.trim());
+      }
+    });
+    userInput.addEventListener("input", adjustTextareaHeight);
+  }
+
+  if (apiKeyInput) {
+    apiKeyInput.addEventListener("input", () => {
+      localStorage.setItem("apiKey", apiKeyInput.value);
+    });
+  }
+
+  if (deepgramApiKeyInput) {
+    deepgramApiKeyInput.addEventListener("input", () => {
+      localStorage.setItem("deepgramApiKey", deepgramApiKeyInput.value);
+    });
+  }
+
+  if (micButton) {
+    micButton.addEventListener("click", handleMicButtonClick);
+  }
+};
+
+// Load saved data from localStorage
+const loadSavedData = () => {
+  const savedApiKey = localStorage.getItem("apiKey");
+  if (savedApiKey && apiKeyInput) apiKeyInput.value = savedApiKey;
+
+  const savedDeepgramApiKey = localStorage.getItem("deepgramApiKey");
+  if (savedDeepgramApiKey && deepgramApiKeyInput) deepgramApiKeyInput.value = savedDeepgramApiKey;
+
+  const savedChatsJson = localStorage.getItem("savedChats");
+  if (savedChatsJson) {
+    savedChats = JSON.parse(savedChatsJson);
+    updateSavedChatsList();
+  }
+
+  githubToken = localStorage.getItem("githubToken") || "";
+  githubRepo = localStorage.getItem("githubRepo") || "";
+  if (githubTokenInput) githubTokenInput.value = githubToken;
+  if (githubRepoInput) githubRepoInput.value = githubRepo;
+};
+
+// Initialize the application
+document.addEventListener("DOMContentLoaded", () => {
   initializeEventListeners();
+  loadSavedData();
   adjustTextareaHeight();
 });
 
 // Make handleSendMessage globally accessible
-window.handleSendMessage = handleSendMessage;
+window.handleSendMessage = () => sendMessage(userInput.value.trim());

@@ -77,6 +77,16 @@
         <option value="gpt-4-turbo">GPT-4 turbo</option>
       </select>
       <button class="new-chat-btn">New Chat</button>
+      <h2>Saved Chats</h2>
+      <div id="saved-chats-list"></div>
+      <button id="save-button">Save Current Chat</button>
+
+      <h2>GitHub Settings</h2>
+      <label for="github-token-input">GitHub Token:</label>
+      <input type="password" id="github-token-input" />
+      <label for="github-repo-input">GitHub Repo:</label>
+      <input type="text" id="github-repo-input" placeholder="username/repo" />
+      <button id="push-to-github-button">Push to GitHub</button>
     </div>
     <div class="main-content">
       <div class="chat-container" id="chat-history"></div>
