@@ -99,6 +99,7 @@ body {
 
 #saved-chats-list {
     max-height: 200px;
+    min-height: 150px;
     overflow-y: auto;
     margin-bottom: 10px;
 }
@@ -129,7 +130,7 @@ body {
 }
 
 #github-token-input, #github-repo-input {
-    width: 100%;
+    width: 92%;
     padding: 8px;
     margin-bottom: 10px;
     border-radius: 4px;
@@ -178,6 +179,7 @@ body {
     margin-bottom: 20px;
 }
 
+
 .sidebar label {
     display: block;
     margin-bottom: 5px;
@@ -194,6 +196,9 @@ body {
     color: #fff;
 }
 
+.sidebar input{
+    width: 92%;
+}
 .new-chat-btn {
     background-color: #444654;
     color: white;
