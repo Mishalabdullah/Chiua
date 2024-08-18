@@ -1,7 +1,13 @@
 "use strict";
 
 // Global variables
-let chatHistory, userInput, apiKeyInput, modelSelect, deepgramApiKeyInput, micButton, mediaRecorder;
+let chatHistory,
+  userInput,
+  apiKeyInput,
+  modelSelect,
+  deepgramApiKeyInput,
+  micButton,
+  mediaRecorder;
 const audioChunks = [];
 let conversationHistory = [];
 let savedChats = {};
@@ -14,12 +20,14 @@ const getChatHistory = () => document.querySelector("#chat-history");
 const getUserInput = () => document.querySelector("#user-input");
 const getApiKeyInput = () => document.querySelector("#api-key");
 const getModelSelect = () => document.querySelector("#model-select");
-const getDeepgramApiKeyInput = () => document.querySelector("#deepgram-api-key");
+const getDeepgramApiKeyInput = () =>
+  document.querySelector("#deepgram-api-key");
 const getMicButton = () => document.querySelector("#mic-button");
 const getSendButton = () => document.querySelector("#send-button");
 const getNewChatBtn = () => document.querySelector(".new-chat-btn");
 const getSaveButton = () => document.querySelector("#save-button");
-const getPushToGithubButton = () => document.querySelector("#push-to-github-button");
+const getPushToGithubButton = () =>
+  document.querySelector("#push-to-github-button");
 const getGithubTokenInput = () => document.querySelector("#github-token-input");
 const getGithubRepoInput = () => document.querySelector("#github-repo-input");
 const getSavedChatsList = () => document.querySelector("#saved-chats-list");
@@ -47,30 +55,79 @@ const formatMessage = (message) => {
   const formattedMessage = marked.parse(message);
   const wrapper = document.createElement("div");
   wrapper.innerHTML = formattedMessage;
-  wrapper.querySelectorAll("pre code").forEach(hljs.highlightElement);
-  return wrapper.innerHTML;
+  
+  // Add copy buttons to code blocks
+  wrapper.querySelectorAll("pre").forEach((pre, index) => {
+    const codeBlock = pre.querySelector("code");
+    if (codeBlock) {
+      const copyButton = document.createElement("button");
+      copyButton.textContent = "";
+      copyButton.className = "copy-button";
+      const originalCode = codeBlock.textContent;
+      copyButton.addEventListener("click",
+        copyToClipboard(originalCode, copyButton)
+      );
+      
+      pre.style.position = "relative";
+      pre.insertBefore(copyButton, codeBlock);
+      
+      hljs.highlightElement(codeBlock);
+    }
+  });
+  
+  return wrapper.outerHTML; // Changed from innerHTML to outerHTML
 };
 
-// Chat functions
 const addMessageToChat = (sender, message, className) => {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${className}`;
-  
+
   const senderSpan = document.createElement("span");
   senderSpan.textContent = `${sender}: `;
   senderSpan.className = "message-sender";
-  
+
   const contentDiv = document.createElement("div");
   contentDiv.innerHTML = formatMessage(message);
   contentDiv.className = "message-content";
-  
-  messageDiv.appendChild(senderSpan);
+
+  if (className === "ai-message") {
+    const headerDiv = document.createElement("div");
+    headerDiv.className = "message-header";
+
+    const copyFullResponseButton = document.createElement("button");
+    copyFullResponseButton.textContent = "Copy Full Response";
+    copyFullResponseButton.className = "copy-full-response-button";
+    copyFullResponseButton.onclick = () =>
+      copyToClipboard(message, copyFullResponseButton);
+
+    headerDiv.appendChild(senderSpan);
+    headerDiv.appendChild(copyFullResponseButton);
+    messageDiv.appendChild(headerDiv);
+  } else {
+    messageDiv.appendChild(senderSpan);
+  }
+
   messageDiv.appendChild(contentDiv);
-  
+
   chatHistory.appendChild(messageDiv);
   chatHistory.scrollTop = chatHistory.scrollHeight;
 };
 
+const copyToClipboard = (text, button) => {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      console.log(text, button);
+      const originalText = button.textContent;
+      button.textContent = "Copied!";
+      setTimeout(() => {
+        button.textContent = originalText;
+      }, 2000);
+    })
+    .catch((err) => {
+      console.error("Failed to copy text: ", err);
+    });
+};
 const sendMessage = async (message) => {
   const apiKey = apiKeyInput.value.trim();
   const selectedModel = modelSelect.value;
@@ -84,7 +141,7 @@ const sendMessage = async (message) => {
 
   addMessageToChat("You", message, "user-message");
   conversationHistory.push({ role: "user", content: message });
-  
+
   const loaderContainer = document.createElement("div");
   chatHistory.appendChild(loaderContainer);
   showLoader(loaderContainer);
@@ -101,7 +158,8 @@ const sendMessage = async (message) => {
         messages: [
           {
             role: "system",
-            content: "You are a helpful assistant. Use Markdown formatting for code blocks and structured text.",
+            content:
+              "You are a helpful assistant. Use Markdown formatting for code blocks and structured text.",
           },
           ...conversationHistory,
         ],
@@ -123,12 +181,14 @@ const sendMessage = async (message) => {
     if (currentChatId && savedChats[currentChatId]) {
       savedChats[currentChatId].messages = [...conversationHistory];
       localStorage.setItem("savedChats", JSON.stringify(savedChats));
-      console.log(savedChats)
+      console.log(savedChats);
       updateSavedChatsList();
     }
   } catch (error) {
     console.error("Error:", error);
-    alert("An error occurred while fetching the response. Please check your API key and try again.");
+    alert(
+      "An error occurred while fetching the response. Please check your API key and try again."
+    );
   } finally {
     removeLoader(loaderContainer);
     loaderContainer.remove();
@@ -149,7 +209,7 @@ const saveCurrentChat = () => {
 
   savedChats[currentChatId] = {
     date: currentDate,
-    messages: [...conversationHistory]
+    messages: [...conversationHistory],
   };
 
   localStorage.setItem("savedChats", JSON.stringify(savedChats));
@@ -164,7 +224,9 @@ const updateSavedChatsList = () => {
 
   Object.entries(savedChats).forEach(([chatId, chatData]) => {
     const chatItem = document.createElement("div");
-    chatItem.textContent = `${chatData.date} - ${chatData.messages[0]?.content.substring(0, 30) || "Empty chat"}...`;
+    chatItem.textContent = `${chatData.date} - ${
+      chatData.messages[0]?.content.substring(0, 30) || "Empty chat"
+    }...`;
     chatItem.className = "saved-chat-item";
     chatItem.addEventListener("click", () => loadChat(chatId));
     savedChatsList.appendChild(chatItem);
@@ -193,7 +255,9 @@ const startNewChat = () => {
 // GitHub integration
 const pushToGithub = async () => {
   if (!githubToken || !githubRepo) {
-    alert("Please enter your GitHub token and repository name in the settings.");
+    alert(
+      "Please enter your GitHub token and repository name in the settings."
+    );
     return;
   }
 
@@ -343,7 +407,8 @@ const initializeEventListeners = () => {
   const githubRepoInput = getGithubRepoInput();
 
   if (saveButton) saveButton.addEventListener("click", saveCurrentChat);
-  if (pushToGithubButton) pushToGithubButton.addEventListener("click", pushToGithub);
+  if (pushToGithubButton)
+    pushToGithubButton.addEventListener("click", pushToGithub);
 
   if (githubTokenInput) {
     githubTokenInput.addEventListener("input", () => {
@@ -364,7 +429,7 @@ const initializeEventListeners = () => {
       sendMessage(userInput.value.trim());
     });
   }
-  
+
   if (newChatBtn) {
     newChatBtn.addEventListener("click", startNewChat);
   }
@@ -402,7 +467,8 @@ const loadSavedData = () => {
   if (savedApiKey && apiKeyInput) apiKeyInput.value = savedApiKey;
 
   const savedDeepgramApiKey = localStorage.getItem("deepgramApiKey");
-  if (savedDeepgramApiKey && deepgramApiKeyInput) deepgramApiKeyInput.value = savedDeepgramApiKey;
+  if (savedDeepgramApiKey && deepgramApiKeyInput)
+    deepgramApiKeyInput.value = savedDeepgramApiKey;
 
   const savedChatsJson = localStorage.getItem("savedChats");
   if (savedChatsJson) {
@@ -418,6 +484,7 @@ const loadSavedData = () => {
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
+  
   initializeEventListeners();
   loadSavedData();
   adjustTextareaHeight();
