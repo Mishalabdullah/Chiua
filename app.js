@@ -202,6 +202,25 @@ const pushToGithub = async () => {
   const path = `chats/${date}/chats.json`;
 
   try {
+    // Step 1: Fetch the current file's `sha`
+    let sha = null;
+    const getFileResponse = await fetch(
+      `https://api.github.com/repos/${githubRepo}/contents/${path}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `token ${githubToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (getFileResponse.ok) {
+      const fileData = await getFileResponse.json();
+      sha = fileData.sha;
+    }
+
+    // Step 2: Include the `sha` in the update request
     const response = await fetch(
       `https://api.github.com/repos/${githubRepo}/contents/${path}`,
       {
@@ -214,6 +233,7 @@ const pushToGithub = async () => {
           message: `Update chats for ${date}`,
           content: content,
           branch: "main",
+          sha: sha, // Include the `sha` if it exists
         }),
       }
     );
