@@ -3,6 +3,28 @@
     --bg-color: #f7f7f8;
     --text-color: #343541;
     --border-color: #e5e5e5;
+    --sidebar-bg: #202123;
+    --sidebar-text: #ffffff;
+    --chat-bg: #ffffff;
+    --user-message-bg: #f0f0f0;
+    --ai-message-bg: #e6f3ff;
+    --input-bg: #ffffff;
+    --button-bg: #10a37f;
+    --button-text: #ffffff;
+}
+
+body.dark-theme {
+    --bg-color: #1e1e2e;
+    --text-color: #cdd6f4;
+    --border-color: #45475a;
+    --sidebar-bg: #181825;
+    --sidebar-text: #cdd6f4;
+    --chat-bg: #1e1e2e;
+    --user-message-bg: #313244;
+    --ai-message-bg: #45475a;
+    --input-bg: #313244;
+    --button-bg: #89b4fa;
+    --button-text: #1e1e2e;
 }
 
 body {
@@ -13,15 +35,17 @@ body {
     padding: 0;
     display: flex;
     height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .sidebar {
     width: 260px;
-    background-color: #202123;
-    color: #ffffff;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
     padding: 20px;
     display: flex;
     flex-direction: column;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .main-content {
@@ -39,26 +63,151 @@ body {
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: #ffffff;
+    background-color: var(--chat-bg);
     margin-bottom: 20px;
     padding: 20px;
 }
 
-.message {
-    margin-bottom: 20px;
-    line-height: 1.5;
-}
-
 .user-message {
-    background-color: #f0f0f0;
+    background-color: var(--user-message-bg);
     padding: 10px;
     border-radius: 8px;
+    margin-bottom: 10px;
 }
 
 .ai-message {
-    background-color: #e6f3ff;
+    background-color: var(--ai-message-bg);
     padding: 10px;
     border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+#user-input {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+#send-button, #mic-button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+}
+
+/* Theme switch styles */
+.theme-switch-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.theme-switch {
+    display: inline-block;
+    height: 34px;
+    position: relative;
+    width: 60px;
+}
+
+.theme-switch input {
+    display: none;
+}
+
+.slider {
+    background-color: #ccc;
+    bottom: 0;
+    cursor: pointer;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    transition: .4s;
+}
+
+.slider:before {
+    background-color: #fff;
+    bottom: 4px;
+    content: "";
+    height: 26px;
+    left: 4px;
+    position: absolute;
+    transition: .4s;
+    width: 26px;
+}
+
+input:checked + .slider {
+    background-color: #89b4fa;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.sun-icon, .moon-icon {
+    position: absolute;
+    top: 7px;
+    width: 20px;
+    height: 20px;
+    color: #ffffff;
+}
+
+.sun-icon {
+    left: 7px;
+}
+
+.moon-icon {
+    right: 7px;
+}
+
+/* Adjustments for dark theme */
+body.dark-theme .sidebar select,
+body.dark-theme .sidebar input {
+    background-color: #313244;
+    color: #cdd6f4;
+    border-color: #45475a;
+}
+
+body.dark-theme #saved-chats-list .saved-chat-item:hover {
+    background-color: #45475a;
+}
+
+body.dark-theme #save-button,
+body.dark-theme #push-to-github-button {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+}
+
+body.dark-theme #save-button:hover,
+body.dark-theme #push-to-github-button:hover {
+    background-color: #b4befe;
+}
+
+body.dark-theme .message pre {
+    background-color: #313244;
+    border: 1px solid #45475a;
+}
+
+body.dark-theme .message code {
+    color: #f38ba8;
+}
+
+body.dark-theme .copy-full-response-button,
+body.dark-theme .copy-button {
+    background-color: #45475a;
+    border-color: #6c7086;
+    color: #cdd6f4;
+}
+
+body.dark-theme .copy-full-response-button:hover,
+body.dark-theme .copy-button:hover {
+    background-color: #585b70;
 }
 
 .input-container {

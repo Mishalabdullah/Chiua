@@ -31,6 +31,7 @@ const getPushToGithubButton = () =>
 const getGithubTokenInput = () => document.querySelector("#github-token-input");
 const getGithubRepoInput = () => document.querySelector("#github-repo-input");
 const getSavedChatsList = () => document.querySelector("#saved-chats-list");
+const getThemeToggle = () => document.querySelector("#checkbox");
 
 // Utility functions
 const showLoader = (element) => {
@@ -51,11 +52,29 @@ const adjustTextareaHeight = () => {
   }
 };
 
+const setTheme = (theme) => {
+  document.body.classList.toggle("dark-theme", theme === "dark");
+  localStorage.setItem("theme", theme);
+  const themeToggle = getThemeToggle();
+  if (themeToggle) {
+    themeToggle.checked = theme === "dark";
+  }
+};
+const toggleTheme = () => {
+  const themeToggle = getThemeToggle();
+  const newTheme = themeToggle.checked ? "dark" : "light";
+  setTheme(newTheme);
+};
+
+const initializeTheme = () => {
+  const savedTheme = localStorage.getItem("theme") || "light";
+  setTheme(savedTheme);
+};
 const formatMessage = (message) => {
   const formattedMessage = marked.parse(message);
   const wrapper = document.createElement("div");
   wrapper.innerHTML = formattedMessage;
-  
+
   // Add copy buttons to code blocks
   wrapper.querySelectorAll("pre").forEach((pre, index) => {
     const codeBlock = pre.querySelector("code");
@@ -64,17 +83,18 @@ const formatMessage = (message) => {
       copyButton.textContent = "";
       copyButton.className = "copy-button";
       const originalCode = codeBlock.textContent;
-      copyButton.addEventListener("click",
+      copyButton.addEventListener(
+        "click",
         copyToClipboard(originalCode, copyButton)
       );
-      
+
       pre.style.position = "relative";
       pre.insertBefore(copyButton, codeBlock);
-      
+
       hljs.highlightElement(codeBlock);
     }
   });
-  
+
   return wrapper.outerHTML; // Changed from innerHTML to outerHTML
 };
 
@@ -459,6 +479,10 @@ const initializeEventListeners = () => {
   if (micButton) {
     micButton.addEventListener("click", handleMicButtonClick);
   }
+  const themeToggle = getThemeToggle();
+  if (themeToggle) {
+    themeToggle.addEventListener("change", toggleTheme);
+  }
 };
 
 // Load saved data from localStorage
@@ -474,6 +498,7 @@ const loadSavedData = () => {
   if (savedChatsJson) {
     savedChats = JSON.parse(savedChatsJson);
     updateSavedChatsList();
+    initializeTheme();
   }
 
   githubToken = localStorage.getItem("githubToken") || "";
@@ -484,10 +509,10 @@ const loadSavedData = () => {
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
-  
   initializeEventListeners();
   loadSavedData();
   adjustTextareaHeight();
+  initializeTheme();
 });
 
 // Make handleSendMessage globally accessible
