@@ -197,14 +197,35 @@ const sendMessage = async (message) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let aiMessage = '';
+    let messageBuffer = '';
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
-      aiMessage += chunk;
-      updateChatMessage("AI", aiMessage, "ai-message");
+      messageBuffer += chunk;
+
+      let boundary = messageBuffer.indexOf('\n');
+
+      while (boundary !== -1) {
+        const completeMessage = messageBuffer.substring(0, boundary + 1).trim();
+        messageBuffer = messageBuffer.substring(boundary + 1);
+
+        if (completeMessage.startsWith('data: ')) {
+          const jsonString = completeMessage.substring(6); // Remove 'data: ' prefix
+          if (jsonString !== "[DONE]") {
+            const jsonData = JSON.parse(jsonString);
+            const content = jsonData.choices[0].delta.content;
+            if (content) {
+              aiMessage += content;
+              updateChatMessage("AI", aiMessage, "ai-message");
+            }
+          }
+        }
+
+        boundary = messageBuffer.indexOf('\n');
+      }
     }
 
     addMessageToChat("AI", aiMessage, "ai-message");
@@ -238,6 +259,7 @@ function updateChatMessage(sender, message, className) {
     addMessageToChat(sender, message, className);
   }
 }
+
 
 // Chat storage functions
 const generateChatId = () => `chat_${Date.now()}`;
