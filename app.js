@@ -161,19 +161,23 @@ const sendMessage = async (message) => {
 
   if (!message) return;
 
+  // User's message
   addMessageToChat("You", message, "user-message");
   conversationHistory.push({ role: "user", content: message });
 
-  let aiMessage = ''; // Initialize message accumulator
-  let rawAiMessage = ''; // Raw message for buffering streaming content
-  const tempMessageId = `temp_ai_message_${Date.now()}`; // Unique ID for the temporary AI message
+  // Placeholder for AI's message
+  const tempMessageId = `temp_ai_message_${Date.now()}`;
+  const placeholderDiv = document.createElement("div");
+  placeholderDiv.className = "message ai-message";
+  placeholderDiv.id = tempMessageId;
+  placeholderDiv.innerHTML = `<span class="message-sender">AI: </span><div class="message-content"></div>`;
+  chatHistory.appendChild(placeholderDiv);
 
   const loaderContainer = document.createElement("div");
   chatHistory.appendChild(loaderContainer);
   showLoader(loaderContainer);
 
-  // Add a placeholder for the AI message
-  addMessageToChat("AI", aiMessage, "ai-message", tempMessageId);
+  let rawAiMessage = ''; // Raw message for buffering streaming content
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -225,6 +229,7 @@ const sendMessage = async (message) => {
             const content = jsonData.choices[0].delta.content;
             if (content) {
               rawAiMessage += content;
+              // Update placeholder without formatting
               updateChatMessage("AI", rawAiMessage, "ai-message", tempMessageId);
             }
           }
@@ -235,12 +240,11 @@ const sendMessage = async (message) => {
     }
 
     if (rawAiMessage.trim()) {
-      aiMessage = formatMessage(rawAiMessage); // Format the final message with markdown
-      
+      const formattedAiMessage = formatMessage(rawAiMessage); // Format the final message with markdown
       // Update the final message with formatted markdown
-      updateChatMessage("AI", aiMessage, "ai-message", tempMessageId, true);
-      
-      conversationHistory.push({ role: "assistant", content: aiMessage });
+      updateChatMessage("AI", formattedAiMessage, "ai-message", tempMessageId, true);
+
+      conversationHistory.push({ role: "assistant", content: rawAiMessage });
     }
 
     // Update the current chat in savedChats if it exists
@@ -264,32 +268,19 @@ const sendMessage = async (message) => {
 };
 
 function updateChatMessage(sender, message, className, messageId, isFinalFormat = false) {
-  let messageDiv = document.getElementById(messageId);
-  
-  if (!messageDiv) {
-    messageDiv = document.createElement("div");
-    messageDiv.className = `message ${className}`;
-    messageDiv.id = messageId;
-    const senderSpan = document.createElement("span");
-    senderSpan.textContent = `${sender}: `;
-    senderSpan.className = "message-sender";
-    messageDiv.appendChild(senderSpan);
-    chatHistory.appendChild(messageDiv);
-  }
+  const messageDiv = document.getElementById(messageId);
 
-  if (isFinalFormat) {
-    messageDiv.querySelector('.message-content').innerHTML = formatMessage(message);
-  } else {
-    if (!messageDiv.querySelector('.message-content')) {
-      const contentDiv = document.createElement("div");
-      contentDiv.className = "message-content";
-      messageDiv.appendChild(contentDiv);
+  if (messageDiv) {
+    const contentDiv = messageDiv.querySelector('.message-content');
+    if (isFinalFormat) {
+      contentDiv.innerHTML = message;
+    } else {
+      contentDiv.textContent = message;
     }
-    messageDiv.querySelector('.message-content').textContent = message;
+    chatHistory.scrollTop = chatHistory.scrollHeight;
   }
-  
-  chatHistory.scrollTop = chatHistory.scrollHeight;
 }
+
 
 
 
