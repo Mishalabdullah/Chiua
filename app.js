@@ -164,9 +164,16 @@ const sendMessage = async (message) => {
   addMessageToChat("You", message, "user-message");
   conversationHistory.push({ role: "user", content: message });
 
+  let aiMessage = ''; // Initialize message accumulator
+  let rawAiMessage = ''; // Raw message for buffering streaming content
+  const tempMessageId = `temp_ai_message_${Date.now()}`; // Unique ID for the temporary AI message
+
   const loaderContainer = document.createElement("div");
   chatHistory.appendChild(loaderContainer);
   showLoader(loaderContainer);
+
+  // Add a placeholder for the AI message
+  addMessageToChat("AI", aiMessage, "ai-message", tempMessageId);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -196,7 +203,6 @@ const sendMessage = async (message) => {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-    let aiMessage = '';
     let messageBuffer = '';
 
     while (true) {
@@ -218,8 +224,8 @@ const sendMessage = async (message) => {
             const jsonData = JSON.parse(jsonString);
             const content = jsonData.choices[0].delta.content;
             if (content) {
-              aiMessage += content;
-              updateChatMessage("AI", aiMessage, "ai-message");
+              rawAiMessage += content;
+              updateChatMessage("AI", rawAiMessage, "ai-message", tempMessageId);
             }
           }
         }
@@ -228,8 +234,14 @@ const sendMessage = async (message) => {
       }
     }
 
-    addMessageToChat("AI", aiMessage, "ai-message");
-    conversationHistory.push({ role: "assistant", content: aiMessage });
+    if (rawAiMessage.trim()) {
+      aiMessage = formatMessage(rawAiMessage); // Format the final message with markdown
+      
+      // Update the final message with formatted markdown
+      updateChatMessage("AI", aiMessage, "ai-message", tempMessageId, true);
+      
+      conversationHistory.push({ role: "assistant", content: aiMessage });
+    }
 
     // Update the current chat in savedChats if it exists
     if (currentChatId && savedChats[currentChatId]) {
@@ -251,14 +263,34 @@ const sendMessage = async (message) => {
   }
 };
 
-function updateChatMessage(sender, message, className) {
-  const lastMessage = chatHistory.querySelector(`.${className}:last-child`);
-  if (lastMessage) {
-    lastMessage.querySelector('.message-content').textContent = message;
-  } else {
-    addMessageToChat(sender, message, className);
+function updateChatMessage(sender, message, className, messageId, isFinalFormat = false) {
+  let messageDiv = document.getElementById(messageId);
+  
+  if (!messageDiv) {
+    messageDiv = document.createElement("div");
+    messageDiv.className = `message ${className}`;
+    messageDiv.id = messageId;
+    const senderSpan = document.createElement("span");
+    senderSpan.textContent = `${sender}: `;
+    senderSpan.className = "message-sender";
+    messageDiv.appendChild(senderSpan);
+    chatHistory.appendChild(messageDiv);
   }
+
+  if (isFinalFormat) {
+    messageDiv.querySelector('.message-content').innerHTML = formatMessage(message);
+  } else {
+    if (!messageDiv.querySelector('.message-content')) {
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "message-content";
+      messageDiv.appendChild(contentDiv);
+    }
+    messageDiv.querySelector('.message-content').textContent = message;
+  }
+  
+  chatHistory.scrollTop = chatHistory.scrollHeight;
 }
+
 
 
 // Chat storage functions
