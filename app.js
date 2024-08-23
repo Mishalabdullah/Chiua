@@ -148,6 +148,8 @@ const copyToClipboard = (text, button) => {
       console.error("Failed to copy text: ", err);
     });
 };
+
+
 const sendMessage = async (message) => {
   const apiKey = apiKeyInput.value.trim();
   const selectedModel = modelSelect.value;
@@ -184,6 +186,7 @@ const sendMessage = async (message) => {
           ...conversationHistory,
         ],
         max_tokens: 2048,
+        stream: true, // Enable streaming
       }),
     });
 
@@ -191,11 +194,21 @@ const sendMessage = async (message) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    const responseText = data.choices[0].message.content;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let aiMessage = '';
 
-    addMessageToChat("AI", responseText, "ai-message");
-    conversationHistory.push({ role: "assistant", content: responseText });
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      aiMessage += chunk;
+      updateChatMessage("AI", aiMessage, "ai-message");
+    }
+
+    addMessageToChat("AI", aiMessage, "ai-message");
+    conversationHistory.push({ role: "assistant", content: aiMessage });
 
     // Update the current chat in savedChats if it exists
     if (currentChatId && savedChats[currentChatId]) {
@@ -216,6 +229,15 @@ const sendMessage = async (message) => {
     adjustTextareaHeight();
   }
 };
+
+function updateChatMessage(sender, message, className) {
+  const lastMessage = chatHistory.querySelector(`.${className}:last-child`);
+  if (lastMessage) {
+    lastMessage.querySelector('.message-content').textContent = message;
+  } else {
+    addMessageToChat(sender, message, className);
+  }
+}
 
 // Chat storage functions
 const generateChatId = () => `chat_${Date.now()}`;
